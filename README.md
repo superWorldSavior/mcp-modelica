@@ -1,7 +1,7 @@
 # @casys/mcp-modelica
 
 [![JSR](https://jsr.io/badges/@casys/mcp-modelica)](https://jsr.io/@casys/mcp-modelica)
-[![CI](https://github.com/Casys-AI/mcp-modelica/actions/workflows/check.yml/badge.svg)](https://github.com/Casys-AI/mcp-modelica/actions/workflows/check.yml)
+[![CI](https://github.com/superWorldSavior/mcp-modelica/actions/workflows/check.yml/badge.svg)](https://github.com/superWorldSavior/mcp-modelica/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A bounded Modelica provider for approved simulation kits, exact run evidence, and small MCP App
