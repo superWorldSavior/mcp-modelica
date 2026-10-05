@@ -13,6 +13,9 @@ permissions:
   actions: read
   packages: read
 
+env:
+  REGISTRY_IMAGE: ghcr.io/superworldsavior/mcp-modelica
+
 jobs:
   verify:
     if: >
@@ -95,6 +98,7 @@ jobs:
             scripts/verify-published-release.ts \
             --tag "$TAG_NAME" \
             --commit "$RELEASE_COMMIT" \
+            --image "$REGISTRY_IMAGE" \
             --coordinate \
             --evidence verification/published-release.json \
             > verification/stdout.json

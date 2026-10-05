@@ -113,17 +113,19 @@ Deno.test("neutral README fails when wrapped required guidance is removed from t
   assert(strippedGuidance !== readme, "the checked-in README must wrap the required guidance");
   const guidanceReport = inspectTemporallyNeutralReadme(strippedGuidance, {
     version: packageVersion,
+    image: "ghcr.io/superworldsavior/mcp-modelica",
   });
   assertEquals(guidanceReport.ok, false);
   assert(guidanceReport.violations.includes("missing-post-publication-digest-guidance"));
 
   const strippedVariable = readme.replaceAll(
-    "ghcr.io/casys-ai/mcp-modelica@${MODELICA_IMAGE_DIGEST:?set from verified evidence}",
-    "ghcr.io/casys-ai/mcp-modelica:placeholder",
+    "ghcr.io/superworldsavior/mcp-modelica@${MODELICA_IMAGE_DIGEST:?set from verified evidence}",
+    "ghcr.io/superworldsavior/mcp-modelica:placeholder",
   );
   assert(strippedVariable !== readme, "the checked-in README must include the digest variable");
   const variableReport = inspectTemporallyNeutralReadme(strippedVariable, {
     version: packageVersion,
+    image: "ghcr.io/superworldsavior/mcp-modelica",
   });
   assertEquals(variableReport.ok, false);
   assert(variableReport.violations.includes("missing-digest-variable"));
@@ -134,10 +136,16 @@ Deno.test("checked-in README is temporally neutral for the package version", asy
     await Deno.readTextFile(new URL("../deno.json", import.meta.url)),
   ) as { version: string }).version;
   const readme = await Deno.readTextFile(new URL("../README.md", import.meta.url));
-  assertEquals(inspectTemporallyNeutralReadme(readme, { version: packageVersion }), {
-    ok: true,
-    violations: [],
-  });
+  assertEquals(
+    inspectTemporallyNeutralReadme(readme, {
+      version: packageVersion,
+      image: "ghcr.io/superworldsavior/mcp-modelica",
+    }),
+    {
+      ok: true,
+      violations: [],
+    },
+  );
 });
 
 Deno.test("verifier succeeds when published bytes match advertised digests on every layer", async () => {
@@ -875,6 +883,67 @@ Deno.test("CLI skips a leading -- so deno task separators do not become identity
     coordinate: false,
     evidencePath: "",
   });
+});
+
+Deno.test("CLI verifies the explicitly selected personal image and its matching README", async () => {
+  const image = "ghcr.io/superworldsavior/mcp-modelica";
+  const registry = await successfulRegistry();
+  registry.readme = NEUTRAL_README.replaceAll(GHCR_IMAGE_NAME, image);
+  registry.jsrVersionMeta.manifest["/README.md"] = await sri(registry.readme);
+  const requested: string[] = [];
+  const result = await runPublishedReleaseCli(
+    ["--tag", `v${VERSION}`, "--commit", COMMIT, "--image", image],
+    {
+      fetch: (input) => {
+        const url = String(input);
+        requested.push(url);
+        return registry.fetch(
+          url.replaceAll("superworldsavior/mcp-modelica", "casys-ai/mcp-modelica"),
+        );
+      },
+    },
+  );
+  assertEquals(result.exitCode, 0);
+  assertEquals(JSON.parse(result.stdout).image, image);
+  assert(requested.some((url) => url.includes("/v2/superworldsavior/mcp-modelica/")));
+  assert(!requested.some((url) => url.includes("/v2/casys-ai/mcp-modelica/")));
+});
+
+Deno.test("personal image verification refuses a README still advertising the old namespace", async () => {
+  const registry = await successfulRegistry();
+  const result = await runPublishedReleaseCli(
+    [
+      "--tag",
+      `v${VERSION}`,
+      "--commit",
+      COMMIT,
+      "--image",
+      "ghcr.io/superworldsavior/mcp-modelica",
+    ],
+    { fetch: registry.fetch },
+  );
+  assertEquals(result.exitCode, 1);
+  assertEquals(JSON.parse(result.stdout).code, "published_readme_not_neutral");
+  refuteVerifiedAnnouncement(result);
+});
+
+Deno.test("CLI refuses tagged, digest-bound or unrelated image coordinates", () => {
+  for (
+    const image of [
+      "ghcr.io/superworldsavior/mcp-modelica:0.6.5",
+      `ghcr.io/superworldsavior/mcp-modelica@${FAKE_DIGEST}`,
+      "ghcr.io/superworldsavior/another-package",
+    ]
+  ) {
+    let rejected = false;
+    try {
+      parseCli(["--tag", `v${VERSION}`, "--commit", COMMIT, "--image", image]);
+    } catch (error) {
+      rejected = error instanceof PublishedReleaseVerifierError &&
+        error.code === "invalid_release_identity";
+    }
+    assert(rejected, `accepted unsafe coordinate ${image}`);
+  }
 });
 
 Deno.test("actual CLI command fails closed on an invalid tag and does not write evidence", async () => {

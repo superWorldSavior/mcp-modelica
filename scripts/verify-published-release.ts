@@ -192,6 +192,7 @@ export async function runPublishedReleaseCli(
     const result = await verifyPublishedRelease({
       version: parsed.version,
       commit: parsed.commit,
+      image: parsed.image,
       fetch: fetchImpl,
       env: envGet,
     });
@@ -1150,11 +1151,13 @@ export function parseCli(args: readonly string[]): {
   commit: string;
   coordinate: boolean;
   evidencePath: string;
+  image?: string;
 } {
   let tag = "";
   let commit = "";
   let coordinate = false;
   let evidencePath = "";
+  let image: string | undefined;
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--") continue;
@@ -1178,17 +1181,36 @@ export function parseCli(args: readonly string[]): {
       index += 1;
       continue;
     }
+    if (argument === "--image" && value) {
+      if (!/^ghcr\.io\/[a-z0-9][a-z0-9-]*\/mcp-modelica$/.test(value)) {
+        throw fail(
+          "invalid_release_identity",
+          { image: value },
+          "Pass an untagged GHCR mcp-modelica image.",
+        );
+      }
+      image = value;
+      index += 1;
+      continue;
+    }
     throw fail(
       "invalid_release_identity",
       { argument },
-      "Use --tag vX.Y.Z --commit <sha> [--coordinate] [--evidence <path>].",
+      "Use --tag vX.Y.Z --commit <sha> [--image ghcr.io/<owner>/mcp-modelica] [--coordinate] [--evidence <path>].",
     );
   }
   const version = versionFromReleaseTag(tag);
   if (!RELEASE_COMMIT.test(commit.toLowerCase())) {
     throw fail("invalid_release_identity", { commit }, "Pass the exact 40-character tag commit.");
   }
-  return { tag, version, commit: commit.toLowerCase(), coordinate, evidencePath };
+  return {
+    tag,
+    version,
+    commit: commit.toLowerCase(),
+    coordinate,
+    evidencePath,
+    ...(image === undefined ? {} : { image }),
+  };
 }
 
 function requiredEnv(name: string, envGet: EnvGetter): string {

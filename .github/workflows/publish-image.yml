@@ -69,7 +69,7 @@ jobs:
       setup-qemu: false
       target: final
       sign: "true"
-      meta-images: ghcr.io/casys-ai/mcp-modelica
+      meta-images: ghcr.io/superworldsavior/mcp-modelica
       meta-tags: |
         type=match,pattern=v(.*),group=1
         type=sha,format=long,prefix=sha-

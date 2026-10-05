@@ -172,9 +172,9 @@ Deno.test("Docker release inputs are immutable and verified", async () => {
     !readme.includes("forthcoming") &&
       !/@sha256:[a-f0-9]{64}/.test(readme) &&
       readme.includes(
-        "ghcr.io/casys-ai/mcp-modelica@${MODELICA_IMAGE_DIGEST:?set from verified evidence}",
+        "ghcr.io/superworldsavior/mcp-modelica@${MODELICA_IMAGE_DIGEST:?set from verified evidence}",
       ) &&
-      readme.includes(`ghcr.io/casys-ai/mcp-modelica:${packageVersion}`) &&
+      readme.includes(`ghcr.io/superworldsavior/mcp-modelica:${packageVersion}`) &&
       readme.includes(`jsr:@casys/mcp-modelica@${packageVersion}`) &&
       /After the paired GHCR image\s+publication has succeeded/.test(readme) &&
       /immutable GHCR index\s+digest/.test(readme),
